@@ -20,7 +20,7 @@ three main reasons:
 
 ```
 
-docker build . -t ose:latest
+docker build . -t ose/ose:latest
 
 ```
 

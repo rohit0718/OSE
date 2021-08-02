@@ -30,6 +30,24 @@ roleRef:
   name: system:volume-scheduler
   apiGroup: rbac.authorization.k8s.io
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ose-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1beta1
+    kind: KubeSchedulerConfiguration
+    extenders:
+    - urlPrefix: "http://localhost:8888"
+      filterVerb: "filter"
+      prioritizeVerb: "prioritize"
+      weight: 1
+      enableHTTPS: false
+    leaderElection:
+      leaderElect: true
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -48,8 +66,13 @@ spec:
         app: ose
     spec:
       serviceAccountName: ose-sa
+      volumes:
+      - name: ose-config
+        configMap:
+          name: ose-config
       containers:
-      - command:
+      - name: ose-scheduler
+        command:
         - kube-scheduler
         - --scheduler-name=ose
         - --config=/ose/config.yaml
@@ -60,7 +83,6 @@ spec:
             path: /healthz
             port: 10251
           initialDelaySeconds: 15
-        name: ose-container
         readinessProbe:
           httpGet:
             path: /healthz
@@ -71,10 +93,23 @@ spec:
             cpu: "2000m"
         securityContext:
           privileged: false
-        volumeMounts: []
-      hostNetwork: false
-      hostPID: false
-      volumes: []
+        volumeMounts:
+        - name: ose-config
+          mountPath: /ose
+      - name: ose-scheduler-extender
+        image: ose/ose:latest
+        imagePullPolicy: Never
+        ports:
+          - containerPort: 8888
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "1000m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "1024Mi"
+            cpu: "2000m"   
+            ephemeral-storage: "2Gi" 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -230,42 +265,3 @@ rules:
   - leases
   verbs:
   - update
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ose-config
-  namespace: kube-system
-data:
-  config.yaml: |
-    apiVersion: kubescheduler.config.k8s.io/v1alpha1
-    kind: KubeSchedulerConfiguration
-    schedulerName: ose
-    algorithmSource:
-      policy:
-        configMap:
-          namespace: kube-system
-          name: ose-policy
-    leaderElection:
-      leaderElect: true
-      lockObjectName: ose
-      lockObjectNamespace: kube-system
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ose-policy
-  namespace: kube-system
-data:
- policy.cfg : |
-  {
-    "kind" : "Policy",
-    "apiVersion" : "v1",
-    "extenders" : [{
-      "urlPrefix": "http://localhost:8888",
-      "filterVerb": "filter",
-      "prioritizeVerb": "prioritize",
-      "weight": 1,
-      "enableHttps": false
-    }],
-  }

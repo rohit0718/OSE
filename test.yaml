@@ -5,7 +5,7 @@ metadata:
   labels:
     app: ose-test
 spec:
-  schedulerName: ose
+  schedulerName: ose-scheduler
   containers:
   - name: ose-test-container
     image: gcr.io/google_containers/pause-amd64:3.0
