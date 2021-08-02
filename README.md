@@ -16,11 +16,12 @@ three main reasons:
 
 # Usage
 
-### 1. Buid docker image
+### 1. Buid docker image (choose one depending on architecture of worker nodes)
 
 ```
 
-docker build . -t ose/ose:latest
+docker buildx build --platform linux/arm64 --push -t ose/ose:latest . // arm
+docker buildx build --platform linux/amd64 --push -t ose/ose:latest . // x86
 
 ```
 
@@ -44,6 +45,13 @@ You should see that `ose-test-container` will be scheduled by `ose-scheduler`.
 $ kubectl create -f test.yaml
 
 $ kubectl describe pod/ose-test-container
+
+Events:
+  Type    Reason     Age   From           Message
+  ----    ------     ----  ----           -------
+  Normal  Scheduled  33s   ose-scheduler  Successfully assigned default/ose-test to node
+  Normal  Created    32s   kubelet        Created container ose-test-container
+  Normal  Started    32s   kubelet        Started container ose-test-container
 
 ```
 
