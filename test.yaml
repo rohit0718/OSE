@@ -8,8 +8,8 @@ spec:
   schedulerName: ose-scheduler
   containers:
   - name: ose-test-container
-    image: gcr.io/google_containers/pause-amd64:3.0
+    image: gcr.io/google_containers/pause:3.0
     resources:
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "20Mi"
+        cpu: "10m"
