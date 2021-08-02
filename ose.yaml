@@ -51,9 +51,9 @@ spec:
       containers:
       - command:
         - kube-scheduler
-        - --address=0.0.0.0
-        - --leader-elect=false
         - --scheduler-name=ose
+        - --config=/ose/config.yaml
+        - -v=4
         image: k8simage/kube-scheduler:v1.19.8
         livenessProbe:
           httpGet:
@@ -230,3 +230,42 @@ rules:
   - leases
   verbs:
   - update
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ose-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1alpha1
+    kind: KubeSchedulerConfiguration
+    schedulerName: ose
+    algorithmSource:
+      policy:
+        configMap:
+          namespace: kube-system
+          name: ose-policy
+    leaderElection:
+      leaderElect: true
+      lockObjectName: ose
+      lockObjectNamespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ose-policy
+  namespace: kube-system
+data:
+ policy.cfg : |
+  {
+    "kind" : "Policy",
+    "apiVersion" : "v1",
+    "extenders" : [{
+      "urlPrefix": "http://localhost:8888",
+      "filterVerb": "filter",
+      "prioritizeVerb": "prioritize",
+      "weight": 1,
+      "enableHttps": false
+    }],
+  }
